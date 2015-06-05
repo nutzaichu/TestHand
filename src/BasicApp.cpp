@@ -56,6 +56,7 @@ public:
 	void						setup();
 	void						update();
 	void						drawHand();
+	void						drawFruit();
 	Kinect2::DeviceRef			mDevice;
 	Kinect2::Frame				mFrame;
 	Kinect2::Body				mBody;
@@ -63,10 +64,11 @@ public:
 	float						mFrameRate;
 	bool						mFullScreen;
 	map<JointType, Body::Joint>	jointMap;
-	ci::params::InterfaceGlRef	mParams;
 	Texture						mTexture;
 	Body::Joint					handRight;
 	Body::Joint					handLeft;
+
+	vector<Vec2f>				fruit;
 
 	Vec2i						handRightxyScreen;
 	Vec2i						handLeftxyScreen;
@@ -97,6 +99,9 @@ void BasicApp::setup()
 	mDevice = Kinect2::Device::create();
 	mDevice->start( Kinect2::DeviceOptions().enableBodyIndex().enableBody() );
 	
+	for (int i = 0; i < 1; i++){
+		fruit.push_back(Vec2f(rand() % 1280,rand() % 760));
+	}
 }
 
 void BasicApp::update()
@@ -123,15 +128,29 @@ void BasicApp::draw()
 	gl::setMatricesWindow(getWindowSize());
 	gl::enableAlphaBlending();
 	gl::color(Colorf::white());
+
 	if (mFrame.getColor()) {
 		gl::TextureRef tex = gl::Texture::create(mFrame.getColor());
 		gl::draw(tex, tex->getBounds(), Rectf(Vec2f::zero(), Vec2f(1280,720)));
 	}
-
 	drawHand();
-
+	gl::color(Colorf::white());
+	drawFruit();
 }
 
+void BasicApp::drawFruit()
+{
+	if (mFrame.getDepth() && mDevice && mBody.isTracked()){
+		pushMatrices();
+		for (int i = 0; i < fruit.size(); i++){
+			if ((handRightxyScreen[0] - fruit[i][0] < 50) && (handRightxyScreen[1] - fruit[i][1] < 50)) fruit[i] = (Vec2f(rand() % 1280, rand() % 760));
+			if ((handLeftxyScreen[0] - fruit[i][0] < 50) && (handLeftxyScreen[1] - fruit[i][1] < 50)) fruit[i] = (Vec2f(rand() % 1280, rand() % 760));
+			//gl::color(rand() % 255, rand() % 255, rand() % 255);
+			drawSolidCircle(fruit[i], 60, 0);
+		}
+		popMatrices();
+	}
+}
 void BasicApp::drawHand()
 {
 	if (mFrame.getDepth() && mDevice){
@@ -140,31 +159,33 @@ void BasicApp::drawHand()
 		mCoorMapper = mDevice->getCoordinateMapper();
 			for (int i = 0; i < mBodies.size(); i++){
 				mBody = mBodies[i];
-				jointMap = mBody.getJointMap();
-				handRight = jointMap[JointType_HandRight];
-				handLeft = jointMap[JointType_HandLeft];
-				handRightState = mBody.getRightHandState();
-				handLeftState = mBody.getLeftHandState();
-				handRightxyScreen = mapBodyCoordToColor(handRight.getPosition(), mCoorMapper);
-				handLeftxyScreen = mapBodyCoordToColor(handLeft.getPosition(), mCoorMapper);
-				handRightxyScreen2 = Vec2f(handRightxyScreen);
-				handLeftxyScreen2 = Vec2f(handLeftxyScreen);
-				gl::lineWidth(5);
-				if (handRightState == HandState_Closed) {
-					gl::color(255, 0, 0);
-					drawStrokedCircle(handRightxyScreen2, 20, 0);
-				}
-				else if (handRightState == HandState_Open) {
-					gl::color(0, 255, 0);
-					drawStrokedCircle(handRightxyScreen2, 20, 0);
-				}
-				if (handLeftState == HandState_Closed) {
-					gl::color(255, 0, 0);
-					drawStrokedCircle(handLeftxyScreen2, 20, 0);
-				}
-				else if (handLeftState == HandState_Open) {
-					gl::color(0, 255, 0);
-					drawStrokedCircle(handLeftxyScreen2, 20, 0);
+				if (mBody.isTracked()){
+					jointMap = mBody.getJointMap();
+					handRight = jointMap[JointType_HandRight];
+					handLeft = jointMap[JointType_HandLeft];
+					handRightState = mBody.getRightHandState();
+					handLeftState = mBody.getLeftHandState();
+					handRightxyScreen = mapBodyCoordToColor(handRight.getPosition(), mCoorMapper);
+					handLeftxyScreen = mapBodyCoordToColor(handLeft.getPosition(), mCoorMapper);
+					handRightxyScreen2 = Vec2f(handRightxyScreen);
+					handLeftxyScreen2 = Vec2f(handLeftxyScreen);
+					gl::lineWidth(5);
+					if (handRightState == HandState_Closed) {
+						gl::color(255, 0, 0);
+						drawStrokedCircle(handRightxyScreen2, 20, 0);
+					}
+					else if (handRightState == HandState_Open) {
+						gl::color(0, 255, 0);
+						drawStrokedCircle(handRightxyScreen2, 20, 0);
+					}
+					if (handLeftState == HandState_Closed) {
+						gl::color(255, 0, 0);
+						drawStrokedCircle(handLeftxyScreen2, 20, 0);
+					}
+					else if (handLeftState == HandState_Open) {
+						gl::color(0, 255, 0);
+						drawStrokedCircle(handLeftxyScreen2, 20, 0);
+					}
 				}
 			}
 		popMatrices();
