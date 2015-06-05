@@ -55,6 +55,7 @@ public:
 	void						prepareSettings( ci::app::AppBasic::Settings* settings );
 	void						setup();
 	void						update();
+	void						drawHand();
 	Kinect2::DeviceRef			mDevice;
 	Kinect2::Frame				mFrame;
 	Kinect2::Body				mBody;
@@ -118,42 +119,57 @@ void BasicApp::update()
 void BasicApp::draw()
 {
 	gl::setViewport(getWindowBounds());
-	gl::clear();
+	gl::clear(Colorf::black());
 	gl::setMatricesWindow(getWindowSize());
-
+	gl::enableAlphaBlending();
+	gl::color(Colorf::white());
 	if (mFrame.getColor()) {
 		gl::TextureRef tex = gl::Texture::create(mFrame.getColor());
 		gl::draw(tex, tex->getBounds(), Rectf(Vec2f::zero(), Vec2f(1280,720)));
 	}
-	for (int i = 0; i < mBodies.size(); i++){
-		mBody = mBodies[i];
-		//if (mBody.isTracked()){
-		jointMap = mBody.getJointMap();
-		handRight = jointMap[JointType_HandRight];
-		handLeft = jointMap[JointType_HandLeft];
-		handRightState = mBody.getRightHandState();
-		handLeftState = mBody.getLeftHandState();
-		if (mFrame.getDepth() && mDevice){
-			pushMatrices();
-			scale(Vec2f(getWindowSize()) / Vec2f(mFrame.getDepth().getSize()));
-			mCoorMapper = mDevice->getCoordinateMapper();
-			handRightxyScreen = mapBodyCoordToDepth(handRight.getPosition(), mCoorMapper);
-			handLeftxyScreen = mapBodyCoordToDepth(handLeft.getPosition(), mCoorMapper);
-			handRightxyScreen2 = Vec2f(handRightxyScreen);
-			handLeftxyScreen2 = Vec2f(handLeftxyScreen);
 
-			if (handRightState == HandState_Closed) drawStrokedCircle(handRightxyScreen2, 20, 0);
-			else if (handRightState == HandState_Open) drawSolidCircle(handRightxyScreen2, 20, 0);
-			if (handLeftState == HandState_Closed) drawStrokedCircle(handLeftxyScreen2, 20, 0);
-			else if (handLeftState == HandState_Open) drawSolidCircle(handLeftxyScreen2, 20, 0);
+	drawHand();
 
-			popMatrices();
+}
+
+void BasicApp::drawHand()
+{
+	if (mFrame.getDepth() && mDevice){
+		pushMatrices();
+		scale(Vec2f(getWindowSize()) / Vec2f(mFrame.getColor().getSize()));
+		mCoorMapper = mDevice->getCoordinateMapper();
+			for (int i = 0; i < mBodies.size(); i++){
+				mBody = mBodies[i];
+				jointMap = mBody.getJointMap();
+				handRight = jointMap[JointType_HandRight];
+				handLeft = jointMap[JointType_HandLeft];
+				handRightState = mBody.getRightHandState();
+				handLeftState = mBody.getLeftHandState();
+				handRightxyScreen = mapBodyCoordToColor(handRight.getPosition(), mCoorMapper);
+				handLeftxyScreen = mapBodyCoordToColor(handLeft.getPosition(), mCoorMapper);
+				handRightxyScreen2 = Vec2f(handRightxyScreen);
+				handLeftxyScreen2 = Vec2f(handLeftxyScreen);
+				gl::lineWidth(5);
+				if (handRightState == HandState_Closed) {
+					gl::color(255, 0, 0);
+					drawStrokedCircle(handRightxyScreen2, 20, 0);
+				}
+				else if (handRightState == HandState_Open) {
+					gl::color(0, 255, 0);
+					drawStrokedCircle(handRightxyScreen2, 20, 0);
+				}
+				if (handLeftState == HandState_Closed) {
+					gl::color(255, 0, 0);
+					drawStrokedCircle(handLeftxyScreen2, 20, 0);
+				}
+				else if (handLeftState == HandState_Open) {
+					gl::color(0, 255, 0);
+					drawStrokedCircle(handLeftxyScreen2, 20, 0);
+				}
+			}
+		popMatrices();
 	}
 
-
-	}
-	//}
-	//mParams->draw();
 }
 CINDER_APP_BASIC( BasicApp, RendererGl )
 	
