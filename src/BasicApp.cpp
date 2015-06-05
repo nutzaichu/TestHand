@@ -112,15 +112,7 @@ void BasicApp::update()
 	}
 
 	mBodies = mFrame.getBodies();
-	for (int i = 0; i < mBodies.size(); i++){
-		mBody = mBodies[i];
-		//if (mBody.isTracked()){
-		jointMap = mBody.getJointMap();
-		handRight = jointMap[JointType_HandRight];
-		handLeft = jointMap[JointType_HandLeft];
-		handRightState	= mBody.getRightHandState();
-		handLeftState	= mBody.getLeftHandState();
-	}
+
 }
 
 void BasicApp::draw()
@@ -133,22 +125,32 @@ void BasicApp::draw()
 		gl::TextureRef tex = gl::Texture::create(mFrame.getColor());
 		gl::draw(tex, tex->getBounds(), Rectf(Vec2f::zero(), Vec2f(1280,720)));
 	}
+	for (int i = 0; i < mBodies.size(); i++){
+		mBody = mBodies[i];
+		//if (mBody.isTracked()){
+		jointMap = mBody.getJointMap();
+		handRight = jointMap[JointType_HandRight];
+		handLeft = jointMap[JointType_HandLeft];
+		handRightState = mBody.getRightHandState();
+		handLeftState = mBody.getLeftHandState();
+		if (mFrame.getDepth() && mDevice){
+			pushMatrices();
+			scale(Vec2f(getWindowSize()) / Vec2f(mFrame.getDepth().getSize()));
+			mCoorMapper = mDevice->getCoordinateMapper();
+			handRightxyScreen = mapBodyCoordToDepth(handRight.getPosition(), mCoorMapper);
+			handLeftxyScreen = mapBodyCoordToDepth(handLeft.getPosition(), mCoorMapper);
+			handRightxyScreen2 = Vec2f(handRightxyScreen);
+			handLeftxyScreen2 = Vec2f(handLeftxyScreen);
 
-	if (mFrame.getDepth() && mDevice){
-		pushMatrices();
-		scale(Vec2f(getWindowSize()) / Vec2f(mFrame.getDepth().getSize()));
-		mCoorMapper = mDevice->getCoordinateMapper();
-		handRightxyScreen = mapBodyCoordToDepth(handRight.getPosition(), mCoorMapper);
-		handLeftxyScreen = mapBodyCoordToDepth(handLeft.getPosition(), mCoorMapper);
-		handRightxyScreen2 = Vec2f(handRightxyScreen);
-		handLeftxyScreen2 = Vec2f(handLeftxyScreen);
+			if (handRightState == HandState_Closed) drawStrokedCircle(handRightxyScreen2, 20, 0);
+			else if (handRightState == HandState_Open) drawSolidCircle(handRightxyScreen2, 20, 0);
+			if (handLeftState == HandState_Closed) drawStrokedCircle(handLeftxyScreen2, 20, 0);
+			else if (handLeftState == HandState_Open) drawSolidCircle(handLeftxyScreen2, 20, 0);
 
-		if (handRightState == HandState_Closed) drawStrokedCircle(handRightxyScreen2, 20, 0);
-		else if (handRightState == HandState_Open) drawSolidCircle(handRightxyScreen2, 20, 0);
-		if (handLeftState == HandState_Closed) drawStrokedCircle(handLeftxyScreen2, 20, 0);
-		else if (handLeftState == HandState_Open) drawSolidCircle(handLeftxyScreen2, 20, 0);
+			popMatrices();
+	}
 
-		popMatrices();
+
 	}
 	//}
 	//mParams->draw();
