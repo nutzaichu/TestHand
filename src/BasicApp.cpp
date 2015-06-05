@@ -66,21 +66,6 @@ public:
 	Texture						mTexture;
 	Body::Joint					handRight;
 	Body::Joint					handLeft;
-	float						handRightx;
-	float						handRighty;
-	float						handLeftx;
-	float						handLefty;
-
-	float						handRightx2;
-	float						handRighty2;
-	float						handLeftx2;
-	float						handLefty2;
-
-	Vec2f						handRightxy;
-	Vec2f						handLeftxy;
-
-	Vec2f						handRightxyPrint;
-	Vec2f						handLeftxyPrint;
 
 	Vec2i						handRightxyScreen;
 	Vec2i						handLeftxyScreen;
@@ -88,8 +73,8 @@ public:
 	Vec2f						handRightxyScreen2;
 	Vec2f						handLeftxyScreen2;
 
-	Vec3f						handRightxy2;
-	Vec3f						handLeftxy2;
+	HandState					handRightState;
+	HandState					handLeftState;
 	ICoordinateMapper*			mCoorMapper;
 private:
 
@@ -127,33 +112,15 @@ void BasicApp::update()
 	}
 
 	mBodies = mFrame.getBodies();
-	console() << mBodies.size() << endl;
 	for (int i = 0; i < mBodies.size(); i++){
 		mBody = mBodies[i];
 		//if (mBody.isTracked()){
 		jointMap = mBody.getJointMap();
 		handRight = jointMap[JointType_HandRight];
 		handLeft = jointMap[JointType_HandLeft];
-		handRightx = (handRight.getPosition()[0] * 1000) + 640;
-		handRighty = (handRight.getPosition()[1] * -600) + 360;
-		handLeftx = (handLeft.getPosition()[0] * 1000) + 640;
-		handLefty = (handLeft.getPosition()[1] * -600) + 360;
-		handRightxy = Vec2f(handRightx, handRighty);
-		handLeftxy = Vec2f(handLeftx, handLefty);
+		handRightState	= mBody.getRightHandState();
+		handLeftState	= mBody.getLeftHandState();
 	}
-
-	mCoorMapper = mDevice->getCoordinateMapper();
-
-	handRightxyScreen = mapBodyCoordToColor(handRight.getPosition(), mCoorMapper);
-	handLeftxyScreen = mapBodyCoordToColor(handLeft.getPosition(), mCoorMapper);
-	
-
-	handRightxyScreen2 = Vec2f(handRightxyScreen);
-	handLeftxyScreen2 = Vec2f(handRightxyScreen);
-
-
-
-
 }
 
 void BasicApp::draw()
@@ -161,29 +128,28 @@ void BasicApp::draw()
 	gl::setViewport(getWindowBounds());
 	gl::clear();
 	gl::setMatricesWindow(getWindowSize());
-	//gl::enableAlphaBlending();
 
 	if (mFrame.getColor()) {
 		gl::TextureRef tex = gl::Texture::create(mFrame.getColor());
 		gl::draw(tex, tex->getBounds(), Rectf(Vec2f::zero(), Vec2f(1280,720)));
 	}
-	/*
-	if (mFrame.getDepth()) {
-		gl::TextureRef tex = gl::Texture::create(Kinect2::channel16To8(mFrame.getDepth()));
-		gl::draw(tex, tex->getBounds(), Rectf(getWindowCenter().x, 0.0f, (float)getWindowWidth(), getWindowCenter().y));
+
+	if (mFrame.getDepth() && mDevice){
+		pushMatrices();
+		scale(Vec2f(getWindowSize()) / Vec2f(mFrame.getDepth().getSize()));
+		mCoorMapper = mDevice->getCoordinateMapper();
+		handRightxyScreen = mapBodyCoordToDepth(handRight.getPosition(), mCoorMapper);
+		handLeftxyScreen = mapBodyCoordToDepth(handLeft.getPosition(), mCoorMapper);
+		handRightxyScreen2 = Vec2f(handRightxyScreen);
+		handLeftxyScreen2 = Vec2f(handLeftxyScreen);
+
+		if (handRightState == HandState_Closed) drawStrokedCircle(handRightxyScreen2, 20, 0);
+		else if (handRightState == HandState_Open) drawSolidCircle(handRightxyScreen2, 20, 0);
+		if (handLeftState == HandState_Closed) drawStrokedCircle(handLeftxyScreen2, 20, 0);
+		else if (handLeftState == HandState_Open) drawSolidCircle(handLeftxyScreen2, 20, 0);
+
+		popMatrices();
 	}
-	if (mFrame.getInfrared()) {
-		gl::TextureRef tex = gl::Texture::create(mFrame.getInfrared());
-		gl::draw(tex, tex->getBounds(), Rectf(0.0f, getWindowCenter().y, getWindowCenter().x, (float)getWindowHeight()));
-	}
-	if (mFrame.getBodyIndex()) {
-		gl::TextureRef tex = gl::Texture::create(Kinect2::colorizeBodyIndex(mFrame.getBodyIndex()));
-		gl::draw(tex, tex->getBounds(), Rectf(getWindowCenter(), Vec2f(getWindowSize())));
-	}
-	*/
-	//if (mFrame.getBodyIndex()){ 
-		drawSolidCircle(handRightxy, 50, 0);
-		drawSolidCircle(handLeftxy, 50, 0);
 	//}
 	//mParams->draw();
 }
