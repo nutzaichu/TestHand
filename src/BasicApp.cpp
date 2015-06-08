@@ -40,7 +40,7 @@
 #include "cinder/params/Params.h"
 #include "cinder/Font.h"
 #include "Kinect2.h"
-
+#include "cinder/Rand.h"
 
 using namespace ci;
 using namespace ci::app;
@@ -48,6 +48,13 @@ using namespace std;
 using namespace Kinect2;
 using namespace gl;
 
+struct Hand
+{
+public:
+	Hand(Vec2i screenPos, HandState state);
+	Vec2i						screenPos;
+	HandState					state;
+};
 class BasicApp : public ci::app::AppBasic 
 {
 public:
@@ -67,18 +74,13 @@ public:
 	Texture						mTexture;
 	Body::Joint					handRight;
 	Body::Joint					handLeft;
-
+	ci::Rand					rand;
 	vector<Vec2f>				fruit;
-
-	Vec2i						handRightxyScreen;
-	Vec2i						handLeftxyScreen;
-
-	Vec2f						handRightxyScreen2;
-	Vec2f						handLeftxyScreen2;
-
-	HandState					handRightState;
-	HandState					handLeftState;
+	vector<Hand>				right;
+	vector<Hand>				left;
 	ICoordinateMapper*			mCoorMapper;
+	float						w;
+	float						h;
 private:
 
 };
@@ -99,8 +101,10 @@ void BasicApp::setup()
 	mDevice = Kinect2::Device::create();
 	mDevice->start( Kinect2::DeviceOptions().enableBodyIndex().enableBody() );
 	
-	for (int i = 0; i < 1; i++){
-		fruit.push_back(Vec2f(rand() % 1280,rand() % 760));
+	for (int i = 0; i < 1; i++){ 
+		w = rand.nextFloat(300.0f, 1000.0f);
+		h = rand.nextFloat(200.0f, 700.0f);
+		fruit.push_back(Vec2f(w,h));
 	}
 }
 
@@ -116,9 +120,40 @@ void BasicApp::update()
 	if ( mDevice && mDevice->getFrame().getTimeStamp() > mFrame.getTimeStamp() ) {
 		mFrame = mDevice->getFrame();
 	}
-
+	///////// GET BODIES /////////////
 	mBodies = mFrame.getBodies();
 
+	///////// GET HAND FROM EACH BODY ///////////
+	for (int i = 0; i < mBodies.size(); i++){
+		mBody = mBodies[i];
+		if (mBody.isTracked()){
+			jointMap = mBody.getJointMap();
+			handRight = jointMap[JointType_HandRight]; 
+			handLeft = jointMap[JointType_HandLeft];
+			Vec2i handRightScreen = mapBodyCoordToColor(handRight.getPosition(), mCoorMapper);
+			Vec2i handLeftScreen = mapBodyCoordToColor(handLeft.getPosition(), mCoorMapper);
+			if (mFrame.getColor() && mDevice)
+			{
+				handRightScreen *= (Vec2f(getWindowSize()) / Vec2f(mFrame.getColor().getSize()));
+				handLeftScreen *= (Vec2f(getWindowSize()) / Vec2f(mFrame.getColor().getSize()));
+			}
+
+			///////// CHECK IF TOUCH CIRCLE /////////////
+			for (int j = 0; j < fruit.size(); j++){
+				if ((abs(handRightScreen.x - fruit[j].x) < 10.0f && abs(handRightScreen.y - fruit[j].y < 10.0f)) || (abs(handLeftScreen.x - fruit[j].x) < 10.0f && abs(handLeftScreen.y - fruit[j].y < 10.0f))) {
+					w = rand.nextFloat(300.0f, 900.0f);
+					h = rand.nextFloat(200.0f, 600.0f);
+					fruit[j] = Vec2f(w, h);
+				}
+			}
+
+			///////// KEEP FOR DRAWING ////////////
+			right.push_back(Hand(handRightScreen, mBody.getRightHandState()));
+			left.push_back(Hand(handLeftScreen, mBody.getLeftHandState()));
+
+			
+		}
+	}
 }
 
 void BasicApp::draw()
@@ -128,7 +163,6 @@ void BasicApp::draw()
 	gl::setMatricesWindow(getWindowSize());
 	gl::enableAlphaBlending();
 	gl::color(Colorf::white());
-
 	if (mFrame.getColor()) {
 		gl::TextureRef tex = gl::Texture::create(mFrame.getColor());
 		gl::draw(tex, tex->getBounds(), Rectf(Vec2f::zero(), Vec2f(1280,720)));
@@ -140,57 +174,41 @@ void BasicApp::draw()
 
 void BasicApp::drawFruit()
 {
-	if (mFrame.getDepth() && mDevice && mBody.isTracked()){
+	pushMatrices();
+	for (int i = 0; i < fruit.size(); i++){
+		drawSolidCircle(fruit[i], 60, 0);
+	}
+	popMatrices();
+	
+}
+void BasicApp::drawHand()
+{
+	if (mFrame.getColor() && mDevice){
 		pushMatrices();
-		for (int i = 0; i < fruit.size(); i++){
-			if ((handRightxyScreen[0] - fruit[i][0] < 50) && (handRightxyScreen[1] - fruit[i][1] < 50)) fruit[i] = (Vec2f(rand() % 1280, rand() % 760));
-			if ((handLeftxyScreen[0] - fruit[i][0] < 50) && (handLeftxyScreen[1] - fruit[i][1] < 50)) fruit[i] = (Vec2f(rand() % 1280, rand() % 760));
-			//gl::color(rand() % 255, rand() % 255, rand() % 255);
-			drawSolidCircle(fruit[i], 60, 0);
+		mCoorMapper = mDevice->getCoordinateMapper();
+		for (int i = 0; i < right.size(); i++){
+			if (right[i].state == HandState_Closed) {
+				gl::color(255, 0, 0);
+				drawStrokedCircle(right[i].screenPos, 20, 0);
+			}
+			else if (right[i].state == HandState_Open) {
+				gl::color(255, 0, 0);
+				drawStrokedCircle(right[i].screenPos, 20, 0);
+			}
+		}
+		for (int i = 0; i < left.size(); i++){
+			if (left[i].state == HandState_Closed) {
+				gl::color(255, 0, 0);
+				drawStrokedCircle(left[i].screenPos, 20, 0);
+			}
+			else if (left[i].state == HandState_Open) {
+				gl::color(255, 0, 0);
+				drawStrokedCircle(left[i].screenPos, 20, 0);
+			}
 		}
 		popMatrices();
 	}
 }
-void BasicApp::drawHand()
-{
-	if (mFrame.getDepth() && mDevice){
-		pushMatrices();
-		scale(Vec2f(getWindowSize()) / Vec2f(mFrame.getColor().getSize()));
-		mCoorMapper = mDevice->getCoordinateMapper();
-			for (int i = 0; i < mBodies.size(); i++){
-				mBody = mBodies[i];
-				if (mBody.isTracked()){
-					jointMap = mBody.getJointMap();
-					handRight = jointMap[JointType_HandRight];
-					handLeft = jointMap[JointType_HandLeft];
-					handRightState = mBody.getRightHandState();
-					handLeftState = mBody.getLeftHandState();
-					handRightxyScreen = mapBodyCoordToColor(handRight.getPosition(), mCoorMapper);
-					handLeftxyScreen = mapBodyCoordToColor(handLeft.getPosition(), mCoorMapper);
-					handRightxyScreen2 = Vec2f(handRightxyScreen);
-					handLeftxyScreen2 = Vec2f(handLeftxyScreen);
-					gl::lineWidth(5);
-					if (handRightState == HandState_Closed) {
-						gl::color(255, 0, 0);
-						drawStrokedCircle(handRightxyScreen2, 20, 0);
-					}
-					else if (handRightState == HandState_Open) {
-						gl::color(0, 255, 0);
-						drawStrokedCircle(handRightxyScreen2, 20, 0);
-					}
-					if (handLeftState == HandState_Closed) {
-						gl::color(255, 0, 0);
-						drawStrokedCircle(handLeftxyScreen2, 20, 0);
-					}
-					else if (handLeftState == HandState_Open) {
-						gl::color(0, 255, 0);
-						drawStrokedCircle(handLeftxyScreen2, 20, 0);
-					}
-				}
-			}
-		popMatrices();
-	}
 
-}
 CINDER_APP_BASIC( BasicApp, RendererGl )
 	
