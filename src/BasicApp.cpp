@@ -138,7 +138,6 @@ void BasicApp::update()
 			handLeft = jointMap[JointType_HandLeft];
 			Vec2i handRightScreen = mapBodyCoordToColor(handRight.getPosition(), mCoorMapper);
 			Vec2i handLeftScreen = mapBodyCoordToColor(handLeft.getPosition(), mCoorMapper);
-
 			Vec2f handRightScreen2 = Vec2f(handRightScreen);
 			Vec2f handLeftScreen2 = Vec2f(handLeftScreen);
 			if (mFrame.getColor() && mDevice)
@@ -148,7 +147,6 @@ void BasicApp::update()
 			}
 
 			///////// CHECK IF TOUCH CIRCLE /////////////
-
 			HandState rightState = mBody.getRightHandState();
 			HandState leftState = mBody.getLeftHandState();
 
@@ -203,8 +201,8 @@ void BasicApp::drawHand()
 	if (mFrame.getColor() && mDevice){
 		pushMatrices();
 		mCoorMapper = mDevice->getCoordinateMapper();
-		for (int i = 0; i < mBodies.size(); i++){
-			
+
+		for (int i = 0; i < mBodies.size(); i++){	
 			if (right[i].state == HandState_Closed) {
 				gl::color(255, 0 , 0);
 				drawSolidCircle(right[i].screenPos, 20, 0);
@@ -213,14 +211,21 @@ void BasicApp::drawHand()
 				gl::color(0, 255, 0);
 				drawSolidCircle(right[i].screenPos, 20, 0);
 			}
-		}
-		for (int i = 0; i < left.size(); i++){
+			else if (right[i].state == HandState_Lasso){
+				gl::color(0, 0, 255);
+				drawSolidCircle(right[i].screenPos, 20, 0);
+			}
+			
 			if (left[i].state == HandState_Closed) {
 				gl::color(255, 0, 0);
 				drawSolidCircle(left[i].screenPos, 20, 0);
 			}
 			else if (left[i].state == HandState_Open){
 				gl::color(0, 255, 0);
+				drawSolidCircle(left[i].screenPos, 20, 0);
+			}
+			else if (left[i].state == HandState_Lasso){
+				gl::color(0, 0, 255);
 				drawSolidCircle(left[i].screenPos, 20, 0);
 			}
 		}
