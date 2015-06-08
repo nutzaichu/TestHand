@@ -108,9 +108,9 @@ void BasicApp::setup()
 	for (int i = 0; i < 3; i++){ 
 		float w = rand.nextFloat(200.0f, 1100.0f);
 		float h = rand.nextFloat(100.0f, 600.0f);
-		float vel = rand.nextFloat(5.0f, 15.0f);
-		fruit.push_back(Vec2f(w,-10.0f));
-		//fruitVel.push_back(Vec2f(0.0f, vel));
+		float vel = rand.nextFloat(1.0f, 6.0f);
+		fruit.push_back(Vec2f(w,0.0f));
+		fruitVel.push_back(Vec2f(0.0f, vel));
 	}
 }
 
@@ -160,6 +160,10 @@ void BasicApp::update()
 				if (((distanceRightX < 10.0f) && (distanceRightY < 10.0f)) || ((distanceLeftX < 10.0f) && (distanceLeftY < 10.0f))) {
 					float w = rand.nextFloat(200.0f, 1100.0f);
 					//h = rand.nextFloat(100.0f, 600.0f);
+					fruit[j] = Vec2f(w, 0.0f);
+				}
+				if (fruit[j].y > 720.0f) {
+					float w = rand.nextFloat(200.0f, 1100.0f);
 					fruit[j] = Vec2f(w, 0.0f);
 				}
 			}
