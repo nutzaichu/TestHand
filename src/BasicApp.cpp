@@ -149,13 +149,13 @@ void BasicApp::update()
 			///////// CHECK IF TOUCH CIRCLE /////////////
 			HandState rightState = mBody.getRightHandState();
 			HandState leftState = mBody.getLeftHandState();
-
+			
 			for (int j = 0; j < fruit.size(); j++){
 				float distanceRightX = abs(handRightScreen2.x - fruit[j].x);
 				float distanceRightY = abs(handRightScreen2.y - fruit[j].y);
 				float distanceLeftX = abs(handLeftScreen2.x - fruit[j].x);
 				float distanceLeftY = abs(handLeftScreen2.y - fruit[j].y);
-				if (((distanceRightX < 10.0f) && (distanceRightY < 10.0f) && (rightState = HandState_Closed)) || ((distanceLeftX < 10.0f) && (distanceLeftY < 10.0f) && (leftState = HandState_Closed))) {
+				if (((distanceRightX < 10.0f) && (distanceRightY < 10.0f)) || ((distanceLeftX < 10.0f) && (distanceLeftY < 10.0f))) {
 					console() << " YEAH " << endl;
 					w = rand.nextFloat(200.0f, 1100.0f);
 					h = rand.nextFloat(100.0f, 600.0f);
