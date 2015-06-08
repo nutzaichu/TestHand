@@ -80,11 +80,11 @@ public:
 	Body::Joint					handLeft;
 	ci::Rand					rand;
 	vector<Vec2f>				fruit;
+	vector<Vec2f>				fruitVel;
 	vector<Hand>				right;
 	vector<Hand>				left;
 	ICoordinateMapper*			mCoorMapper;
-	float						w;
-	float						h;
+
 private:
 
 };
@@ -106,9 +106,11 @@ void BasicApp::setup()
 	mDevice->start( Kinect2::DeviceOptions().enableBodyIndex().enableBody() );
 	
 	for (int i = 0; i < 3; i++){ 
-		w = rand.nextFloat(200.0f, 1100.0f);
-		h = rand.nextFloat(100.0f, 600.0f);
-		fruit.push_back(Vec2f(w,h));
+		float w = rand.nextFloat(200.0f, 1100.0f);
+		float h = rand.nextFloat(100.0f, 600.0f);
+		float vel = rand.nextFloat(5.0f, 15.0f);
+		fruit.push_back(Vec2f(w,-10.0f));
+		//fruitVel.push_back(Vec2f(0.0f, vel));
 	}
 }
 
@@ -156,14 +158,16 @@ void BasicApp::update()
 				float distanceLeftX = abs(handLeftScreen2.x - fruit[j].x);
 				float distanceLeftY = abs(handLeftScreen2.y - fruit[j].y);
 				if (((distanceRightX < 10.0f) && (distanceRightY < 10.0f)) || ((distanceLeftX < 10.0f) && (distanceLeftY < 10.0f))) {
-					console() << " YEAH " << endl;
-					w = rand.nextFloat(200.0f, 1100.0f);
-					h = rand.nextFloat(100.0f, 600.0f);
-					fruit[j] = Vec2f(w, h);
+					float w = rand.nextFloat(200.0f, 1100.0f);
+					//h = rand.nextFloat(100.0f, 600.0f);
+					fruit[j] = Vec2f(w, 0.0f);
 				}
 			}
 
-
+			/////////// UPDATE POS ////////////////
+			for (int j = 0; j < fruit.size(); j++){
+				fruit[j] += fruitVel[j];
+			}
 
 			///////// KEEP FOR DRAWING ////////////
 			right[i] = (Hand(handRightScreen2, rightState));
