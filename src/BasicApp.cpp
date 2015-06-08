@@ -51,7 +51,11 @@ using namespace gl;
 struct Hand
 {
 public:
-	Hand(Vec2i screenPos, HandState state);
+	Hand() : screenPos(0, 0), state(HandState_NotTracked){}
+	Hand(Vec2i sp, HandState s){
+		screenPos = sp;
+		state = s;
+	}
 	Vec2i						screenPos;
 	HandState					state;
 };
@@ -101,9 +105,9 @@ void BasicApp::setup()
 	mDevice = Kinect2::Device::create();
 	mDevice->start( Kinect2::DeviceOptions().enableBodyIndex().enableBody() );
 	
-	for (int i = 0; i < 1; i++){ 
-		w = rand.nextFloat(300.0f, 1000.0f);
-		h = rand.nextFloat(200.0f, 700.0f);
+	for (int i = 0; i < 3; i++){ 
+		w = rand.nextFloat(200.0f, 1100.0f);
+		h = rand.nextFloat(100.0f, 600.0f);
 		fruit.push_back(Vec2f(w,h));
 	}
 }
@@ -124,6 +128,8 @@ void BasicApp::update()
 	mBodies = mFrame.getBodies();
 
 	///////// GET HAND FROM EACH BODY ///////////
+	right.resize(mBodies.size());
+	left.resize(mBodies.size());
 	for (int i = 0; i < mBodies.size(); i++){
 		mBody = mBodies[i];
 		if (mBody.isTracked()){
@@ -132,26 +138,37 @@ void BasicApp::update()
 			handLeft = jointMap[JointType_HandLeft];
 			Vec2i handRightScreen = mapBodyCoordToColor(handRight.getPosition(), mCoorMapper);
 			Vec2i handLeftScreen = mapBodyCoordToColor(handLeft.getPosition(), mCoorMapper);
+
+			Vec2f handRightScreen2 = Vec2f(handRightScreen);
+			Vec2f handLeftScreen2 = Vec2f(handLeftScreen);
 			if (mFrame.getColor() && mDevice)
 			{
-				handRightScreen *= (Vec2f(getWindowSize()) / Vec2f(mFrame.getColor().getSize()));
-				handLeftScreen *= (Vec2f(getWindowSize()) / Vec2f(mFrame.getColor().getSize()));
+				handRightScreen2 *= (Vec2f(getWindowSize()) / Vec2f(mFrame.getColor().getSize()));
+				handLeftScreen2 *= (Vec2f(getWindowSize()) / Vec2f(mFrame.getColor().getSize()));
 			}
 
 			///////// CHECK IF TOUCH CIRCLE /////////////
+
+			HandState rightState = mBody.getRightHandState();
+			HandState leftState = mBody.getLeftHandState();
+
 			for (int j = 0; j < fruit.size(); j++){
-				if ((abs(handRightScreen.x - fruit[j].x) < 10.0f && abs(handRightScreen.y - fruit[j].y < 10.0f)) || (abs(handLeftScreen.x - fruit[j].x) < 10.0f && abs(handLeftScreen.y - fruit[j].y < 10.0f))) {
-					w = rand.nextFloat(300.0f, 900.0f);
-					h = rand.nextFloat(200.0f, 600.0f);
+				float distanceRightX = abs(handRightScreen2.x - fruit[j].x);
+				float distanceRightY = abs(handRightScreen2.y - fruit[j].y);
+				float distanceLeftX = abs(handLeftScreen2.x - fruit[j].x);
+				float distanceLeftY = abs(handLeftScreen2.y - fruit[j].y);
+				if (((distanceRightX < 10.0f) && (distanceRightY < 10.0f) && (rightState = HandState_Closed)) || ((distanceLeftX < 10.0f) && (distanceLeftY < 10.0f) && (leftState = HandState_Closed))) {
+					console() << " YEAH " << endl;
+					w = rand.nextFloat(200.0f, 1100.0f);
+					h = rand.nextFloat(100.0f, 600.0f);
 					fruit[j] = Vec2f(w, h);
 				}
 			}
 
 			///////// KEEP FOR DRAWING ////////////
-			right.push_back(Hand(handRightScreen, mBody.getRightHandState()));
-			left.push_back(Hand(handLeftScreen, mBody.getLeftHandState()));
+			right[i] = (Hand(handRightScreen2, rightState));
+			left[i] = (Hand(handLeftScreen2, leftState));
 
-			
 		}
 	}
 }
@@ -167,9 +184,9 @@ void BasicApp::draw()
 		gl::TextureRef tex = gl::Texture::create(mFrame.getColor());
 		gl::draw(tex, tex->getBounds(), Rectf(Vec2f::zero(), Vec2f(1280,720)));
 	}
-	drawHand();
-	gl::color(Colorf::white());
 	drawFruit();
+	gl::color(Colorf::white());
+	drawHand();
 }
 
 void BasicApp::drawFruit()
@@ -186,24 +203,25 @@ void BasicApp::drawHand()
 	if (mFrame.getColor() && mDevice){
 		pushMatrices();
 		mCoorMapper = mDevice->getCoordinateMapper();
-		for (int i = 0; i < right.size(); i++){
+		for (int i = 0; i < mBodies.size(); i++){
+			
 			if (right[i].state == HandState_Closed) {
-				gl::color(255, 0, 0);
-				drawStrokedCircle(right[i].screenPos, 20, 0);
+				gl::color(255, 0 , 0);
+				drawSolidCircle(right[i].screenPos, 20, 0);
 			}
-			else if (right[i].state == HandState_Open) {
-				gl::color(255, 0, 0);
-				drawStrokedCircle(right[i].screenPos, 20, 0);
+			else if (right[i].state == HandState_Open){
+				gl::color(0, 255, 0);
+				drawSolidCircle(right[i].screenPos, 20, 0);
 			}
 		}
 		for (int i = 0; i < left.size(); i++){
 			if (left[i].state == HandState_Closed) {
 				gl::color(255, 0, 0);
-				drawStrokedCircle(left[i].screenPos, 20, 0);
+				drawSolidCircle(left[i].screenPos, 20, 0);
 			}
-			else if (left[i].state == HandState_Open) {
-				gl::color(255, 0, 0);
-				drawStrokedCircle(left[i].screenPos, 20, 0);
+			else if (left[i].state == HandState_Open){
+				gl::color(0, 255, 0);
+				drawSolidCircle(left[i].screenPos, 20, 0);
 			}
 		}
 		popMatrices();
