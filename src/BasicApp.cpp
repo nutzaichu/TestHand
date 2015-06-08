@@ -163,6 +163,8 @@ void BasicApp::update()
 				}
 			}
 
+
+
 			///////// KEEP FOR DRAWING ////////////
 			right[i] = (Hand(handRightScreen2, rightState));
 			left[i] = (Hand(handLeftScreen2, leftState));
